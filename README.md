@@ -1,15 +1,46 @@
 # Deployment guide
 
-## Создание репозитория
+## Подготовка сервера
+
+### ufw 
+Проверим, какие параметры ufw установлены сейчас:
 ```
-git init
-git remote add origin git@github.com:<никнейм>/<названиеРепозитория>.git
-git add .
-git commit -m "Initial commit"
-git push -u origin master
+sudo ufw status
+```
+Если разрешен только HTTP-трафик, вывод будет примерно следующим:
+```
+Status: active
+
+To                         Action      From
+--                         ------      ----
+OpenSSH                    ALLOW       Anywhere                  
+Nginx HTTP                 ALLOW       Anywhere                  
+OpenSSH (v6)               ALLOW       Anywhere (v6)             
+Nginx HTTP (v6)            ALLOW       Anywhere (v6)
+```
+Внесем изменения, а именно разрешим HTTPS-трафик. Для этого выполним:
+```
+sudo ufw allow 'Nginx Full'
+sudo ufw delete allow 'Nginx HTTP'
 ```
 
-## Подготовка сервера
+Cнова проверим настройки брандмауэра: 
+```
+sudo ufw status
+```
+Если все в порядке, вы увидите, что весь трафик (Nginx Full) разрешен:
+```
+Status: active
+
+To                   Action      From
+--                   ------      ----
+OpenSSH              ALLOW       Anywhere
+Nginx Full           ALLOW       Anywhere
+OpenSSH (v6)         ALLOW       Anywhere (v6)
+Nginx Full (v6)      ALLOW       Anywhere (v6)
+```
+
+
 ### git
 ```
 sudo apt-get update
@@ -17,29 +48,56 @@ sudo apt-get install git
 ```
 
 ### docker
-https://docs.docker.com/engine/install/ubuntu/
 ```
-sudo apt-get update
-sudo apt-get install ca-certificates curl gnupg
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
-
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-
-sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt install docker
 ```
 
-### Запуск приложения
-Создание образа (коробки) с приложением
+### nginx 
 ```
-docker build . --tag fastapi_app
+sudo apt install certbot python3-certbot-nginx
+
+1. Заносим конфиг для nginx на наш домен:
 ```
-Запуск образа в контейнере с пробросом портов для доступа к контейнеру из внешней сети
+sudo nano /etc/nginx/sites-available/ваш_домен
 ```
-docker run -p 9999:8000 fastapi_app
+2. Туда пишем:
 ```
+server {
+    server_name домен www.домен;
+
+    location / {
+        proxy_pass http://localhost:порт/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+}
+```
+3. Создаем символическую ссылку на конфиг:
+```
+sudo ln -s /etc/nginx/sites-available/testsite.dev.conf /etc/nginx/sites-enabled/
+```
+4. Перезапускаем nginx:
+```
+sudo systemctl restart nginx
+nginx -t
+```
+5. Получаем ssl:
+```
+sudo certbot --nginx -d домен -d www.домен
+certbot renew
+crontab -e
+```
+Укажем в крон-задаче следующие параметры:
+```
+30 3 * * 2 /usr/bin/certbot renew >> /var/log/renew-ssl.log
+```
+
+
+## Запуск приложения
+Переходим в директорию приложения
+```
+docker-compose up -d --build --force-recreate
+```
+
