@@ -55,6 +55,7 @@ sudo apt install docker
 ### nginx 
 ```
 sudo apt install certbot python3-certbot-nginx
+```
 
 1. Заносим конфиг для nginx на наш домен:
 ```
