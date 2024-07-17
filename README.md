@@ -49,7 +49,35 @@ sudo apt-get install git
 
 ### docker
 ```
-sudo apt install docker
+sudo apt update
+sudo apt install apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
+sudo systemctl status docker
+```
+
+Если сервер попадает под блокировку докер хаба, то меняем конфиги
+```
+nano /etc/docker/daemon.json
+```
+
+Вносим зеркала
+```
+{
+  "registry-mirrors": [
+    "https://mirror.gcr.io",
+    "https://daocloud.io",
+    "https://c.163.com/",
+    "https://registry.docker-cn.com"
+  ]
+}
+```
+
+Перезагружаем докер
+```
+sudo systemctl restart docker
 ```
 
 ### nginx 
@@ -93,16 +121,5 @@ crontab -e
 Укажем в крон-задаче следующие параметры:
 ```
 30 3 * * 2 /usr/bin/certbot renew >> /var/log/renew-ssl.log
-```
-
-
-## Запуск приложения
-1. Создаем папку для проектов, переходим в нее
-2. Клонируем проект
-3. Переходим в директорию приложения
-4. Переносим файлы окружения
-5. Запускаем докер-контейнеры:
-```
-docker-compose up -d --build --force-recreate
 ```
 
