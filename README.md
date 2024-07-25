@@ -87,7 +87,7 @@ sudo apt install certbot python3-certbot-nginx
 
 1. Заносим конфиг для nginx на наш домен:
 ```
-sudo nano /etc/nginx/sites-available/ваш_домен
+sudo nano /etc/nginx/sites-available/ваш_конфиг
 ```
 2. Туда пишем:
 ```
@@ -105,7 +105,7 @@ server {
 ```
 3. Создаем символическую ссылку на конфиг:
 ```
-sudo ln -s /etc/nginx/sites-available/testsite.dev.conf /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/ваш_конфиг /etc/nginx/sites-enabled/
 ```
 4. Перезапускаем nginx:
 ```
@@ -115,7 +115,6 @@ nginx -t
 5. Получаем ssl:
 ```
 sudo certbot --nginx -d домен -d www.домен
-certbot renew
 crontab -e
 ```
 Укажем в крон-задаче следующие параметры:
